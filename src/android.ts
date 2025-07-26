@@ -284,7 +284,18 @@ export class AndroidRobot implements Robot {
 		trace(`[Android] Sending keys: ${text}`);
 
 		const base64 = Buffer.from(text).toString("base64");
-		this.adb("shell", "am", "broadcast", "-a", "ADB_INPUT_B64", "--es", "msg", base64)
+		this.adb("shell", "ime", "set", "com.android.adbkeyboard/.AdbIME");
+		// Wait for IME to switch
+		await this.sleep(500);
+
+		this.adb("shell", "am", "broadcast", "-a", "ADB_INPUT_B64", "--es", "msg", base64);
+		// Wait for text input to complete
+		await this.sleep(300);
+
+		// restore
+		this.adb("shell", "ime", "set", "com.baidu.input_hihonor/com.baidu.input_honor.ImeService");
+		// Wait for IME to restore
+		await this.sleep(200);
 	}
 
 	public async pressButton(button: Button) {
@@ -293,6 +304,10 @@ export class AndroidRobot implements Robot {
 		}
 
 		this.adb("shell", "input", "keyevent", BUTTON_MAP[button]);
+	}
+
+	private sleep(ms: number): Promise<void> {
+		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 
 	public async tap(x: number, y: number): Promise<void> {
