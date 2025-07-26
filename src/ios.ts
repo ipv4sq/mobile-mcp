@@ -195,6 +195,10 @@ export class IosRobot implements Robot {
 		const wda = await this.wda();
 		return await wda.getOrientation();
 	}
+
+	public async backspace(n: number = 1): Promise<void> {
+		throw new ActionableError("Backspace is not yet implemented for iOS devices");
+	}
 }
 
 export class IosManager {

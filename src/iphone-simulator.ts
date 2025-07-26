@@ -174,6 +174,10 @@ export class Simctl implements Robot {
 		const wda = await this.wda();
 		return wda.getOrientation();
 	}
+
+	public async backspace(n: number = 1): Promise<void> {
+		throw new ActionableError("Backspace is not yet implemented for iOS simulators");
+	}
 }
 
 export class SimctlManager {

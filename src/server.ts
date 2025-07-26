@@ -396,6 +396,20 @@ export const createMcpServer = (): McpServer => {
 	);
 
 	tool(
+		"mobile_backspace",
+		"Delete characters by simulating backspace key presses",
+		{
+			count: z.number().optional().describe("Number of characters to delete (default: 1)"),
+		},
+		async ({ count }) => {
+			requireRobot();
+			const n = count || 1;
+			await robot!.backspace(n);
+			return `Deleted ${n} character${n > 1 ? "s" : ""}`;
+		}
+	);
+
+	tool(
 		"mobile_save_screenshot",
 		"Save a screenshot of the mobile device to a file",
 		{

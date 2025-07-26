@@ -279,6 +279,12 @@ export class AndroidRobot implements Robot {
 		return true;
 	}
 
+	public async backspace(n: number = 1): Promise<void> {
+		for (let i = 0; i < n; i++) {
+			this.adb("shell", "input", "keyevent", "KEYCODE_DEL");
+		}
+	}
+
 	public async sendKeys(text: string): Promise<void> {
 		if (text === "") return;
 		trace(`[Android] Sending keys: ${text}`);

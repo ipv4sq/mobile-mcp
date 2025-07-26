@@ -120,4 +120,10 @@ export interface Robot {
 	 * Get the current screen orientation.
 	 */
 	getOrientation(): Promise<Orientation>;
+
+	/**
+	 * Delete characters by simulating backspace key presses.
+	 * @param n Number of characters to delete (default: 1)
+	 */
+	backspace(n?: number): Promise<void>;
 }
