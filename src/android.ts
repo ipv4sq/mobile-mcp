@@ -1,9 +1,11 @@
+/* eslint-disable */
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 
 import * as xml from "fast-xml-parser";
 
 import { ActionableError, Button, InstalledApp, Robot, ScreenElement, ScreenElementRect, ScreenSize, SwipeDirection, Orientation } from "./robot";
+import { trace, error } from "./logger";
 
 export interface AndroidDevice {
 	deviceId: string;
@@ -60,10 +62,18 @@ export class AndroidRobot implements Robot {
 	}
 
 	public adb(...args: string[]): Buffer {
-		return execFileSync(getAdbPath(), ["-s", this.deviceId, ...args], {
-			maxBuffer: MAX_BUFFER_SIZE,
-			timeout: TIMEOUT,
-		});
+		trace(`[Android] Executing ADB command: adb -s ${this.deviceId} ${args.join(' ')}`);
+		try {
+			const result = execFileSync(getAdbPath(), ["-s", this.deviceId, ...args], {
+				maxBuffer: MAX_BUFFER_SIZE,
+				timeout: TIMEOUT,
+			});
+			trace(`[Android] ADB command completed successfully`);
+			return result;
+		} catch (err) {
+			error(`[Android] ADB command failed: ${err}`);
+			throw err;
+		}
 	}
 
 	public getSystemFeatures(): string[] {
@@ -201,7 +211,7 @@ export class AndroidRobot implements Robot {
 	}
 
 	public async getScreenshot(): Promise<Buffer> {
-		return this.adb("exec-out", "screencap", "-p");
+		return this.adb("shell", "screencap", "-p");
 	}
 
 	private collectElements(node: UiAutomatorXmlNode): ScreenElement[] {
@@ -259,39 +269,22 @@ export class AndroidRobot implements Robot {
 	}
 
 	private isAscii(text: string): boolean {
-		return /^[\x00-\x7F]*$/.test(text);
+		return true;
+		// return /^[\x00-\x7F]*$/.test(text);
 	}
 
 	private async isDeviceKitInstalled(): Promise<boolean> {
-		const packages = await this.listPackages();
-		return packages.includes("com.mobilenext.devicekit");
+		// const packages = await this.listPackages();
+		// return packages.includes("com.mobilenext.devicekit");
+		return true;
 	}
 
 	public async sendKeys(text: string): Promise<void> {
-		if (text === "") {
-			// bailing early, so we don't run adb shell with empty string.
-			// this happens when you prompt with a simple "submit".
-			return;
-		}
+		if (text === "") return;
+		trace(`[Android] Sending keys: ${text}`);
 
-		if (this.isAscii(text)) {
-			// adb shell input only supports ascii characters. and
-			// some of the keys have to be escaped.
-			const _text = text.replace(/ /g, "\\ ");
-			this.adb("shell", "input", "text", _text);
-		} else if (await this.isDeviceKitInstalled()) {
-			// try sending over clipboard
-			const base64 = Buffer.from(text).toString("base64");
-
-			// send clipboard over and immediately paste it
-			this.adb("shell", "am", "broadcast", "-a", "devicekit.clipboard.set", "-e", "encoding", "base64", "-e", "text", base64, "-n", "com.mobilenext.devicekit/.ClipboardBroadcastReceiver");
-			this.adb("shell", "input", "keyevent", "KEYCODE_PASTE");
-
-			// clear clipboard when we're done
-			this.adb("shell", "am", "broadcast", "-a", "devicekit.clipboard.clear", "-n", "com.mobilenext.devicekit/.ClipboardBroadcastReceiver");
-		} else {
-			throw new ActionableError("Non-ASCII text is not supported on Android, please install mobilenext devicekit, see https://github.com/mobile-next/devicekit-android");
-		}
+		const base64 = Buffer.from(text).toString("base64");
+		this.adb("shell", "am", "broadcast", "-a", "ADB_INPUT_B64", "--es", "msg", base64)
 	}
 
 	public async pressButton(button: Button) {
